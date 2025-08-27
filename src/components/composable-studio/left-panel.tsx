@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { ComponentLibrary } from './component-library'
 import { LayersPanel } from './layers-panel'
 import { EnhancedComposePanel } from './enhanced-compose-panel'
+import { ChatMessage } from '@/types'
 
 interface LeftPanelProps {
 	onPageComponentAdd: (componentType: string, data: any) => void
@@ -13,7 +14,13 @@ interface LeftPanelProps {
 	currentComposition?: any
 	hasComponents?: boolean
 	defaultActiveTab?: TabType
-	onPreviewModeChange?: (isPreviewMode: boolean, targetComponentId?: string) => void
+	onPreviewModeChange?: (isPreviewMode: boolean, targetComponentId?: string, changes?: Record<string, any>) => void
+}
+
+// Extended chat message type for persistence
+interface ExtendedChatMessage extends ChatMessage {
+	previewCard?: any
+	simplifiedResponse?: any
 }
 
 type TabType = 'components' | 'layers' | 'compose'
@@ -23,6 +30,10 @@ export function LeftPanel({ onPageComponentAdd, onShowThought, currentCompositio
 	const [panelWidth, setPanelWidth] = useState(400) // Default 400px - wider for compose panel
 	const [isResizing, setIsResizing] = useState(false)
 	const panelRef = useRef<HTMLDivElement>(null)
+	
+	// Persistent chat history for prototype
+	const [persistentChatMessages, setPersistentChatMessages] = useState<ExtendedChatMessage[]>([])
+	const [chatKey, setChatKey] = useState(0) // Force re-render when needed
 	
 	const minWidth = 320 // Minimum width - increased for better chat experience
 	const maxWidth = 600 // Maximum width - increased for expanded state
@@ -91,6 +102,9 @@ export function LeftPanel({ onPageComponentAdd, onShowThought, currentCompositio
 						currentComposition={currentComposition}
 						hasComponents={hasComponents}
 						onPreviewModeChange={onPreviewModeChange}
+						persistentMessages={persistentChatMessages}
+						onMessagesChange={setPersistentChatMessages}
+						chatKey={chatKey}
 					/>
 				)
 			default:

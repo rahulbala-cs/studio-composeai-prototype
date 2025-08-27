@@ -272,8 +272,8 @@ export function StudioCanvas({
 		switch (viewMode) {
 			case 'mobile': return 'max-w-sm'
 			case 'tablet': return 'max-w-2xl'
-			case 'desktop': return 'max-w-6xl'
-			default: return 'max-w-6xl'
+			case 'desktop': return 'max-w-7xl' // Increased for zoom-out effect
+			default: return 'max-w-7xl'
 		}
 	}
 
@@ -347,7 +347,10 @@ export function StudioCanvas({
 			</div>
 
 			{/* Canvas Area */}
-			<div className="flex-1 overflow-auto p-6 relative">
+			<div className="flex-1 overflow-auto p-6 relative" style={{
+				paddingTop: viewMode === 'desktop' ? '12px' : '24px',
+				paddingBottom: viewMode === 'desktop' ? '60px' : '24px'
+			}}>
 				{/* AI Working Overlay */}
 				{currentThought && (
 					<motion.div
@@ -389,6 +392,12 @@ export function StudioCanvas({
 				<GhostPreviewOverlay components={components}>
 					<div 
 						className={`mx-auto bg-white rounded-lg shadow-sm border border-slate-200 min-h-full transition-all duration-300 ${getCanvasWidth()}`}
+						style={{
+							transform: viewMode === 'desktop' ? 'scale(0.85)' : 'scale(1)',
+							transformOrigin: 'top center',
+							marginTop: viewMode === 'desktop' ? '20px' : '0px',
+							marginBottom: viewMode === 'desktop' ? '40px' : '0px'
+						}}
 						onDrop={handleDrop}
 						onDragOver={handleDragOver}
 					>

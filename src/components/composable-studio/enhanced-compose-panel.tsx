@@ -18,6 +18,10 @@ interface EnhancedComposePanelProps {
 	currentComposition?: any
 	hasComponents?: boolean
 	onPreviewModeChange?: (isPreviewMode: boolean, targetComponentId?: string, changes?: Record<string, any>) => void
+	// For persistence across tab switches
+	persistentMessages?: ExtendedChatMessage[]
+	onMessagesChange?: (messages: ExtendedChatMessage[]) => void
+	chatKey?: number
 }
 
 // Removed context attachment interface for prototype simplicity
@@ -176,12 +180,15 @@ export function EnhancedComposePanel({
 	onShowThought, 
 	currentComposition, 
 	hasComponents,
-	onPreviewModeChange
+	onPreviewModeChange,
+	persistentMessages = [],
+	onMessagesChange,
+	chatKey = 0
 }: EnhancedComposePanelProps) {
 	const { context } = useComponentContext()
 	const { selectedComponent, isComponentSelected } = useSelectedComponent()
 	
-	const [messages, setMessages] = useState<ExtendedChatMessage[]>([])
+	const [messages, setMessages] = useState<ExtendedChatMessage[]>(persistentMessages)
 	const [currentInput, setCurrentInput] = useState('')
 	const [isThinking, setIsThinking] = useState(false)
 	const [conversationState, setConversationState] = useState<ConversationState>({
@@ -213,6 +220,18 @@ export function EnhancedComposePanel({
 	const scrollAreaRef = useRef<HTMLDivElement>(null)
 	const inputRef = useRef<HTMLInputElement>(null)
 	
+	// Initialize messages from persistent store when component mounts or chatKey changes
+	useEffect(() => {
+		setMessages(persistentMessages.length > 0 ? persistentMessages : [])
+	}, [chatKey, persistentMessages])
+	
+	// Sync messages back to persistent store whenever they change
+	useEffect(() => {
+		if (onMessagesChange && messages.length > 0) {
+			onMessagesChange(messages)
+		}
+	}, [messages, onMessagesChange])
+	
 	// Auto-scroll to bottom
 	useEffect(() => {
 		if (scrollAreaRef.current) {
@@ -223,8 +242,11 @@ export function EnhancedComposePanel({
 		}
 	}, [messages])
 
-	// Initialize with welcome message
+	// Initialize with welcome message (only if no persistent messages)
 	useEffect(() => {
+		// Skip welcome message if we have persistent messages from tab switching
+		if (persistentMessages.length > 0) return
+		
 		// This ID helps us identify the welcome message specifically.
 		const WELCOME_MESSAGE_ID = 'welcome-message'
 
@@ -275,9 +297,14 @@ export function EnhancedComposePanel({
 	// Simplified intent prediction for prototype
 	useEffect(() => {
 		const suggestions = predictIntent(currentInput, hasComponents || false)
+		
+		// Check if the last message has suggestions - if so, don't show input suggestions
+		const lastMessage = messages[messages.length - 1]
+		const hasRecentMessageSuggestions = lastMessage?.simplifiedResponse?.suggestions?.length ? lastMessage.simplifiedResponse.suggestions.length > 0 : false
+		
 		setInputSuggestions(suggestions)
-		setShowSuggestions(suggestions.length > 0 && currentInput.length > 3)
-	}, [currentInput, hasComponents])
+		setShowSuggestions(suggestions.length > 0 && currentInput.length > 3 && !hasRecentMessageSuggestions)
+	}, [currentInput, hasComponents, messages])
 
 	// Removed proactive suggestions for prototype simplicity
 
@@ -477,6 +504,82 @@ export function EnhancedComposePanel({
 				}
 			})
 			
+		} else if (lowerInput.includes('hero') && lowerInput.includes('dramatic')) {
+			// Handle "Make the hero background more dramatic"
+			await simulateThinking(['Analyzing your hero section...', 'Creating dramatic background options...'])
+			
+			addMessage({
+				type: 'agent',
+				content: "Great choice! A dramatic hero background can really make your page stand out. I have some stunning options for you:",
+				simplifiedResponse: {
+					type: 'suggestions',
+					message: 'Choose a dramatic style:',
+					suggestions: [
+						{ id: 'dark-gradient', label: 'Dark gradient overlay', onClick: () => setCurrentInput('Apply dark gradient background') },
+						{ id: 'animated-bg', label: 'Animated gradient background', onClick: () => setCurrentInput('Add animated background') },
+						{ id: 'parallax-bg', label: 'Parallax image background', onClick: () => setCurrentInput('Add parallax background effect') },
+						{ id: 'video-bg', label: 'Video background', onClick: () => setCurrentInput('Add video background') }
+					]
+				}
+			})
+			
+		} else if (lowerInput.includes('sections') && lowerInput.includes('story')) {
+			// Handle "Add sections that tell your story"
+			await simulateThinking(['Planning your story sections...', 'Structuring narrative flow...'])
+			
+			addMessage({
+				type: 'agent',
+				content: "Perfect! Storytelling sections help connect with your audience. Let me add some compelling story elements:",
+				simplifiedResponse: {
+					type: 'suggestions',
+					message: 'Story sections to add:',
+					suggestions: [
+						{ id: 'about-journey', label: 'Our journey section', onClick: () => setCurrentInput('Add our journey section') },
+						{ id: 'mission-vision', label: 'Mission & vision section', onClick: () => setCurrentInput('Add mission and vision section') },
+						{ id: 'timeline', label: 'Company timeline', onClick: () => setCurrentInput('Add company timeline') },
+						{ id: 'values', label: 'Core values section', onClick: () => setCurrentInput('Add core values section') }
+					]
+				}
+			})
+			
+		} else if (lowerInput.includes('polish') && lowerInput.includes('spacing')) {
+			// Handle "Polish the spacing and visual flow"
+			await simulateThinking(['Analyzing current layout...', 'Optimizing spacing and flow...'])
+			
+			addMessage({
+				type: 'agent',
+				content: "Excellent eye for detail! Good spacing and visual flow make a huge difference in user experience. Here's what I can help with:",
+				simplifiedResponse: {
+					type: 'suggestions',
+					message: 'Polish options:',
+					suggestions: [
+						{ id: 'improve-spacing', label: 'Improve section spacing', onClick: () => setCurrentInput('Improve spacing between sections') },
+						{ id: 'better-typography', label: 'Enhance typography', onClick: () => setCurrentInput('Improve typography and text hierarchy') },
+						{ id: 'visual-hierarchy', label: 'Fix visual hierarchy', onClick: () => setCurrentInput('Improve visual hierarchy') },
+						{ id: 'align-elements', label: 'Align all elements', onClick: () => setCurrentInput('Align and balance all elements') }
+					]
+				}
+			})
+			
+		} else if (lowerInput.includes('elements') && lowerInput.includes('engage')) {
+			// Handle "Add elements that engage visitors"
+			await simulateThinking(['Brainstorming engagement elements...', 'Selecting high-impact additions...'])
+			
+			addMessage({
+				type: 'agent',
+				content: "Smart thinking! Engaging elements keep visitors interested and drive action. Here are some proven engagement boosters:",
+				simplifiedResponse: {
+					type: 'suggestions',
+					message: 'Engagement elements to add:',
+					suggestions: [
+						{ id: 'testimonials', label: 'Customer testimonials', onClick: () => setCurrentInput('Add testimonials section') },
+						{ id: 'interactive-demo', label: 'Interactive demo', onClick: () => setCurrentInput('Add interactive demo') },
+						{ id: 'social-proof', label: 'Social proof stats', onClick: () => setCurrentInput('Add social proof statistics') },
+						{ id: 'faq-section', label: 'FAQ section', onClick: () => setCurrentInput('Add FAQ section') }
+					]
+				}
+			})
+			
 		} else {
 			// Generic response for other inputs - simplified without duplicate suggestions
 			addMessage({
@@ -591,6 +694,10 @@ export function EnhancedComposePanel({
 		// Track user input for intelligence
 		trackAction('input_submitted', undefined, { input, timestamp: new Date() })
 		
+		// Clear input suggestions when user submits
+		setShowSuggestions(false)
+		setInputSuggestions([])
+		
 		addMessage({
 			type: 'user',
 			content: input
@@ -623,11 +730,15 @@ export function EnhancedComposePanel({
 
 		const input = currentInput.trim()
 		setCurrentInput('')
+		setShowSuggestions(false)
+		setInputSuggestions([])
 		await handleUserInput(input)
 	}
 
 	const handleExampleClick = (example: string) => {
 		setCurrentInput(example)
+		setShowSuggestions(false)
+		setInputSuggestions([])
 		// Auto-submit the example
 		setTimeout(() => {
 			handleUserInput(example)
